@@ -1,0 +1,174 @@
+A91<-subset(EA1991,!is.na(Latitude)&!is.na(Longitude))
+A92<-A91[,c("Latitude","Longitude","year")]
+A21<-subset(EA2000,!is.na(Latitude)&!is.na(Longitude))
+A22<-A21[,c("Latitude","Longitude","year")]
+A211<-subset(EA2010,!is.na(Latitude)&!is.na(Longitude))
+A212<-A211[,c("Latitude","Longitude","year")]
+
+# creating a new raster with the extent of the UK 1991-1999 Ea
+rastA92<-raster(A92)
+res(rastA92)<-0.1
+rastA92<-extend(rastA92,extent(rastA92)+1)
+A92.ptsgrid<-gridSample(A92,rastA92,n=0.1)
+rastpolyA92<-rasterToPolygons(rastA92)
+
+#background data generated for 1991-1999 Ea
+A92.buff<-circles(A92,d=20000,lonlat=TRUE)
+A92.poly<-polygons(A92.buff)
+npts<-1000
+pseudoabs.sampA92<-spsample(A92.poly,npts,type='random',iter=25)
+pseudoabs.cellsA92<-cellFromXY(rastA92,pseudoabs.sampA92)
+pseudoabs.cellsA92<-unique(pseudoabs.cellsA92)
+pseudoabs.pointsA92<-xyFromCell(rastA92,pseudoabs.cellsA92)
+presence.cellsA92<-cellFromXY(rastA92, A92)
+presence.pointsA92<-xyFromCell(rastA92,presence.cellsA92)
+presence.cellsA92<-unique(presence.cellsA92)
+presence.pointsA92<-xyFromCell(rastA92,presence.cellsA92)
+PAPointsA92 <- as.data.frame(rbind(cbind(presence.pointsA92, rep(1,
+                                                                 nrow(presence.pointsA92))),cbind(pseudoabs.pointsA92, rep(0, nrow(pseudoabs.pointsA92)))))
+colnames(PAPointsA92) <- c("lon","lat","Y")
+PAPoints.spA92<- PAPointsA92
+coordinates(PAPoints.spA92) <- ~lon+lat
+
+#plotting temperature climate data to the extent of the raster file for 1991-1999 Ea
+WorldClim <- getData("worldclim",var="bio",res=10)
+worldclim.ukA92 <- crop(WorldClim, extent.uk(rastA92))
+plworldclim.ukA92 <- resample(worldclim.ukA92, rastA92)
+
+#extracting the values of the predictors at the locations of the points 1991-1999 Ea
+bio1.ptsA92 <- extract(worldclim.ukA92 [[1]], PAPoints.spA92)
+worldclim.ptsA92 <- extract(worldclim.ukA92, PAPoints.spA92)
+SDM.dataA92<- data.frame(cbind(PAPointsA92, worldclim.ptsA92))
+SDM.dataA92 <- na.omit(SDM.dataA92)
+
+#fitting a GLM to 1991-1999 Ea
+fit_glmA92<- glm(Y ~ bio1, family='binomial', data= SDM.dataA92)
+summary(fit_glmA92)
+
+predA92 <- c('bio1')
+xyzA92 <- data.frame(expand.grid(seq(min(SDM.dataA92 [,predA92[1]], na.rm=T),max(SDM.dataA92 [,predA92[1]], na.rm=T),length=50)))
+names(xyzA92) <- predA92
+xyzA92$z <- predict(fit_glmA92, xyzA92, type='response')
+
+worldclim.uk_dfA92 <- data.frame(rasterToPoints(worldclim.ukA92))
+worldclim.uk_dfA92$pred_glmA92 <- predict(fit_glmA92, worldclim.uk_dfA92)
+plot(mapdata, col = 'grey', border = 'darkgrey', ylab="Latitude (°N)", xlab="Longitude(°E)", main="1991-1999", xlim=extent.uk[c(1,3)], ylim=extent.uk[c(2,4)], axes=TRUE, cex.lab=1.5)
+points(A92$Longitude, A92$Latitude, col='red',
+       cex=0.75)
+
+A2<-A22
+coordinates(A2)<-~Longitude+Latitude
+crs(A2)<-crs(wrld_simpl)
+ovr<-over(A2, wrld_simpl)
+i.mismatchA2<-which(is.na(ovr$NAME))
+A22<-A2
+
+rastA22<-raster(A22)
+res(rastA22)<-0.1
+rastA22<-extend(rastA22,extent(rastA22)+1)
+A22.ptsgrid<-gridSample(A22,rastA22,n=0.1)
+rastpolyA22<-rasterToPolygons(rastA22)
+
+set.seed(1)
+pts.bgA22<- randomPoints(rastA22, 500)
+# plotting pseudo-absence data for 2000-2009 Ea
+A22.buff<-circles(A22,d=20000,lonlat=TRUE)
+A22.poly<-polygons(A22.buff)
+npts<-1000
+
+pseudoabs.sampA22<-spsample(A22.poly,npts,type='random',iter=25)
+pseudoabs.cellsA22<-cellFromXY(rastA22,pseudoabs.sampA22)
+pseudoabs.cellsA22<-unique(pseudoabs.cellsA22)
+pseudoabs.pointsA22<-xyFromCell(rastA22,pseudoabs.cellsA22)
+presence.cellsA22<-cellFromXY(rastA22, A22)
+presence.pointsA22<-xyFromCell(rastA22,presence.cellsA22)
+presence.cellsA22<-unique(presence.cellsA22)
+presence.pointsA22<-xyFromCell(rastA22,presence.cellsA22)
+PAPointsA22 <- as.data.frame(rbind(cbind(presence.pointsA22, rep(1,
+                                                                 nrow(presence.pointsA22))),cbind(pseudoabs.pointsA22, rep(0, nrow(pseudoabs.pointsA22)))))
+colnames(PAPointsA22) <- c("lon","lat","Y")
+PAPoints.spA22<- PAPointsA22
+coordinates(PAPoints.spA22) <- ~lon+lat
+
+worldclim.ukA22 <- crop(WorldClim, extent(rastA22))
+worldclim.ukA22 <- projectRaster(worldclim.ukA22, crs(rastA22))
+worldclim.ukA22 <- resample(worldclim.ukA22, rastA22)
+
+bio1.ptsA22 <- extract(worldclim.ukA22 [[1]], PAPoints.spA22)
+worldclim.ptsA22 <- extract(worldclim.ukA22, PAPoints.spA22)
+SDM.dataA22<- data.frame(cbind(PAPointsA22, worldclim.ptsA22))
+SDM.dataA22 <- na.omit(SDM.dataA22)
+
+fit_glmA22<- glm(Y ~ bio1, family='binomial', data= SDM.dataA22)
+summary(fit_glmA22)
+
+predA22 <- c('bio1')
+xyzA22 <- data.frame(expand.grid(seq(min(SDM.dataA22 [,predA22[1]],
+                                         na.rm=T),max(SDM.dataA22 [,predA22[1]], na.rm=T),length=50)))
+names(xyzA22) <- predA22
+xyzA22$z <- predict(fit_glmA22, xyzA22, type='response')
+
+worldclim.uk_dfA22<- data.frame(rasterToPoints(worldclim.ukA22))
+worldclim.uk_dfA22$pred_glmA22 <- predict(fit_glmA22, worldclim.uk_dfA22)
+plot(mapdata, col = 'grey', border = 'darkgrey', ylab="Latitude (°N)", xlab="Longitude(°E)", main="2000-2009", xlim=extent.uk[c(1,3)], ylim=extent.uk[c(2,4)], axes=TRUE, cex.lab=1.5)
+points(A22$Longitude, A22$Latitude, col='red',
+       cex=0.75)
+
+A12<-A212
+coordinates(A12)<-~Longitude+Latitude
+crs(A12)<-crs(wrld_simpl)
+ovr<-over(A12, wrld_simpl)
+i.mismatchA12<-which(is.na(ovr$NAME))
+A212<-A12
+
+rastA212<-raster(A212)
+res(rastA212)<-0.1
+rastA212<-extend(rastA212,extent(rastA212)+1)
+A212.ptsgrid<-gridSample(A212,rastA212,n=0.1)
+rastpolyA212<-rasterToPolygons(rastA212)
+# background data generated for 2010-2018 Ea
+set.seed(1)
+pts.bgA212<- randomPoints(rastA212, 500)
+
+A212.buff<-circles(A212,d=20000,lonlat=TRUE)
+A212.poly<-polygons(A212.buff)
+npts<-1000
+pseudoabs.sampA212<-spsample(A212.poly,npts,type='random',iter=25)
+pseudoabs.cellsA212<-cellFromXY(rastA212,pseudoabs.sampA212)
+pseudoabs.cellsA212<-unique(pseudoabs.cellsA212)
+pseudoabs.pointsA212<-xyFromCell(rastA212,pseudoabs.cellsA212)
+presence.cellsA212<-cellFromXY(rastA212, A212)
+presence.pointsA212<-xyFromCell(rastA212,presence.cellsA212)
+presence.cellsA212<-unique(presence.cellsA212)
+presence.pointsA212<-xyFromCell(rastA212,presence.cellsA212)
+PAPointsA212 <- as.data.frame(rbind(cbind(presence.pointsA212, rep(1,
+                                                                   nrow(presence.pointsA212))),cbind(pseudoabs.pointsA212, rep(0, nrow(pseudoabs.pointsA212)))))
+colnames(PAPointsA212) <- c("lon","lat","Y")
+PAPoints.spA212<- PAPointsA212
+coordinates(PAPoints.spA212) <- ~lon+lat
+
+worldclim.ukA212 <- crop(WorldClim, extent(rastA212))
+worldclim.ukA212 <- projectRaster(worldclim.ukA212, crs(rastA212))
+worldclim.ukA212 <- resample(worldclim.ukA212, rastA212)
+
+bio1.ptsA212 <- extract(worldclim.ukA212 [[1]], PAPoints.spA212)
+worldclim.ptsA212 <- extract(worldclim.ukA212, PAPoints.spA212)
+SDM.dataA212<- data.frame(cbind(PAPointsA212, worldclim.ptsA212))
+SDM.dataA212 <- na.omit(SDM.dataA212)
+
+fit_glmA212<- glm(Y ~ bio1, family='binomial', data= SDM.dataA212)
+summary(fit_glmA212)
+
+predA212 <- c('bio1')
+# response surfaces for Ea 2010-2018
+xyzA212 <- data.frame(expand.grid(seq(min(SDM.dataA212 [,predA212[1]],
+                                          na.rm=T),max(SDM.dataA212 [,predA212[1]], na.rm=T),length=50)))
+names(xyzA212) <- predA212
+xyzA212$z <- predict(fit_glmA212, xyzA212, type='response')
+
+worldclim.uk_dfA212 <- data.frame(rasterToPoints(worldclim.ukA212))
+worldclim.uk_dfA212$pred_glmA212 <- predict(fit_glmA212, worldclim.uk_dfA212)
+
+plot(mapdata, col = 'grey', border = 'darkgrey', ylab="Latitude (°N)", xlab="Longitude(°E)", main="2010-2018", xlim=extent.uk[c(1,3)], ylim=extent.uk[c(2,4)], axes=TRUE, cex.lab=1.5)
+points(A212$Longitude, A212$Latitude, col='red',
+       cex=0.75)
