@@ -1,0 +1,190 @@
+library(sp)
+library(raster)
+library(rgeos)
+library(dismo)
+library(maptools)
+
+extent.uk(c(-5.5,50.5,1.8,59))
+data(wrld_simpl)
+
+#extracting data for map
+mapdata<-readRDS("gadm36_GBR_2_sp.rds")
+
+#subsetting locations into the three time frames for E. epiphron
+E91<-subset(E1991,!is.na(Latitude)&!is.na(Longitude))
+E92<-E91[,c("Latitude", "longitude", "year")]
+E21<-subset(E2000,!is.na(Latitude)&!is.na(Longitude))
+E22<-E21[,c("Latitude","Longitude","year")]
+E211<-subset(E2010,!is.na(Latitude)&!is.na(Longitude))
+E212<-E211[,c("Latitude","Longitude","year")]
+
+#raster for the first subset
+rastE92<-raster(E92)
+res(rasterE92)<-0.1
+rast92<-extend(rastE92,extent(rastE92)+1)
+E92.ptsgrid<-gridSample(E92,rastE92,n=0.1)
+rastpolyE92<-rasterToPolygons(rastE92)
+
+set.seed(1)
+pts.bgE92<-randomPoints(rastE92,500)
+
+E92.buff<-circles(E92,d=20000,lonlat=TRUE)
+E92.poly<-polygons(E92.buff)
+npts<-1000
+pseudoabs.sampE92<-spsample(E92.poly,npts,type='random',iter=25)
+pseudoabs.cellsE92<-cellFromXY(rastE92,pseudoabs.sampE92)
+pseudoabs.cellsE92<-unique(pseudoabs.cellsE92)
+pseudoabs.pointsE92<-xyFromCell(rastE92,pseudoabs.cellsE92)
+presence.cellsE92<-cellFromXY(rastE92,E92)
+presence.pointsE92<-xyFromCell(rastE92,presence.cellsE92)
+presence.cellsE92<-unique(presence.cellsE92)
+presence.pointsE92<-xyFromCell(rastE92,presence.cellsE92)
+PAPointsE92 <- as.data.frame(rbind(cbind(presence.pointsE92, rep(1,nrow(presence.pointsE92))),cbind(pseudoabs.pointsE92,rep(0,nrow(pseudoabs.pointsE92)))))
+                          
+colnames(PAPointsE92) <- c("lon","lat","Y")
+PAPoints.spE92<- PAPointsE92
+coordinates(PAPoints.spE92) <- ~lon+lat
+
+WorldClim <- getData("worldclim",var="bio",res=10)
+worldclim.uk <- crop(WorldClim, extent(rastE92))
+worldclim.uk <- projectRaster(worldclim.uk, crs(rastE92))
+worldclim.ukE92 <- resample(worldclim.uk, rastE92)
+par(mfrow = c (1,1), mar=c(2,2,2,2))
+plot(worldclim.ukE92 [[1]])
+points(PAPointsE92$lon, PAPointsE92$lat, col= PAPointsE92$Y)
+plot(wrld_simpl, add=T) 
+
+bio1.ptsE92 <- extract(worldclim.ukE92 [[1]], PAPoints.spE92)
+worldclim.ptsE92 <- extract(worldclim.ukE92, PAPoints.spE92)
+SDM.dataE92<- data.frame(cbind(PAPointsE92, worldclim.ptsE92))
+SDM.dataE92 <- na.omit(SDM.dataE92)
+
+fit_glmE92<- glm(Y ~ bio1, family='binomial', data= SDM.dataE92)
+summary(fit_glmE92)
+
+predE92 <- c('bio1')
+library(RColorBrewer)
+library(lattice)
+xyzE92 <- data.frame(expand.grid(seq(min(SDM.dataE92 [,pred92[1]],na.rm=T),max(SDM.dataE92 [,predE92[1]], na.rm=T),length=50)))
+names(xyzE92) <- predE92
+xyzE92$z <- predict(fit_glmE92, xyzE92, type='response')
+
+worldclim.uk_dfE92 <- data.frame(rasterToPoints(worldclim.uk))
+worldclim.uk_dfE92$pred_glmE92 <- predict(fit_glmE92, worldclim.uk_dfE92)
+par(mfrow=c(1,1), mar=c(4.5,4.5,1,1))
+plot(mapdata, col = 'grey', border = 'darkgrey', ylab="Latitude (°N)", xlab="Longitude(°E)", main="1991-1999", xlim=extent.uk[c(1,3)], ylim=extent.uk[c(2,4)], axes=TRUE, cex.lab=1.5)
+points(E92$Longitude, E92$Latitude, col='red',cex=0.75)
+
+#subset 2 for E.epiphron
+rastE22<-raster(E22)
+res(rastE22)<-0.1
+rastE22<-extend(rastE22,extent(rastE22)+1)
+E22.ptsgrid<-gridSample(E22,rastE22,n=0.1)
+rastpolyE22<-rasterToPolygons(rastE22)
+
+set.seed(1)
+pts.bgE22<- randomPoints(rastE22, 500)
+
+E22.buff<-circles(E22,d=20000,lonlat=TRUE)
+E22.poly<-polygons(E22.buff)
+npts<-1000
+pseudoabs.sampE22<-spsample(E22.poly,npts,type='random',iter=25)
+pseudoabs.cellsE22<-cellFromXY(rastE22,pseudoabs.sampE22)
+pseudoabs.cellsE22<-unique(pseudoabs.cellsE22)
+pseudoabs.pointsE22<-xyFromCell(rastE22,pseudoabs.cellsE22)
+presence.cellsE22<-cellFromXY(rastE22, E22)
+presence.pointsE22<-xyFromCell(rastE22,presence.cellsE22)
+presence.cellsE22<-unique(presence.cellsE22)
+presence.pointsE22<-xyFromCell(rastE22,presence.cellsE22)
+PAPointsE22 <- as.data.frame(rbind(cbind(presence.pointsE22, rep(1,
+                                                                 nrow(presence.pointsE22))),cbind(pseudoabs.pointsE22, rep(0, nrow(pseudoabs.pointsE22)))))
+colnames(PAPointsE22) <- c("lon","lat","Y")
+PAPoints.spE22<- PAPointsE22
+coordinates(PAPoints.spE22) <- ~lon+lat
+
+worldclim.ukE22 <- crop(WorldClim, extent(rastE22))
+worldclim.ukE22 <- projectRaster(worldclim.ukE22, crs(rastE22))
+worldclim.ukE22 <- resample(worldclim.uk, rastE22)
+par(mfrow = c (1,1), mar=c(2,2,2,2))
+  plot(worldclim.ukE22 [[1]])
+points(PAPointsE22$lon, PAPointsE22$lat, col= PAPointsE22$Y)
+plot(wrld_simpl, add=T) 
+
+bio1.ptsE22 <- extract(worldclim.ukE22 [[1]], PAPoints.spE22)
+worldclim.ptsE22 <- extract(worldclim.ukE22, PAPoints.spE22)
+SDM.dataE22<- data.frame(cbind(PAPointsE22, worldclim.ptsE22))
+SDM.dataE22 <- na.omit(SDM.dataE22)
+
+fit_glmE22<- glm(Y ~ bio1, family='binomial', data= SDM.dataE22)
+summary(fit_glmE22)
+
+predE22 <- c('bio1')
+xyzE22 <- data.frame(expand.grid(seq(min(SDM.dataE22 [,predE22[1]],
+                                         na.rm=T),max(SDM.dataE22 [,predE22[1]], na.rm=T),length=50)))
+names(xyzE22) <- predE22
+xyzE22$z <- predict(fit_glmE22, xyzE22, type='response')
+
+worldclim.uk_dfE22 <- data.frame(rasterToPoints(worldclim.ukE22))
+worldclim.uk_dfE22$pred_glmE22 <- predict(fit_glmE22, worldclim.uk_dfE22)
+Occpred_rastE22 <- rasterFromXYZ(worldclim.uk_dfE22[, c("x", "y", "pred_glmE22")])
+plot(mapdata, col = 'grey', border = 'darkgrey', ylab="Latitude (°N)", xlab="Longitude(°E)", main="2000-2009", xlim=extent.uk[c(1,3)], ylim=extent.uk[c(2,4)], axes=TRUE, cex.lab=1.5)
+points(E22$Longitude, E22$Latitude, col='red', cex=0.75)
+
+#subset 3 for E.epiphron
+rastE212<-raster(E212)
+res(rastE212)<-0.1
+rastE212<-extend(rastE212,extent(rastE212)+1)
+E212.ptsgrid<-gridSample(E212,rastE212,n=0.1)
+rastpolyE212<-rasterToPolygons(rastE212)
+
+set.seed(1)
+pts.bgE212<- randomPoints(rastE212, 500)
+
+E212.buff<-circles(E212,d=20000,lonlat=TRUE)
+E212.poly<-polygons(E212.buff)
+npts<-1000
+pseudoabs.sampE212<-spsample(E212.poly,npts,type='random',iter=25)
+pseudoabs.cellsE212<-cellFromXY(rastE212,pseudoabs.sampE212)
+pseudoabs.cellsE212<-unique(pseudoabs.cellsE212)
+pseudoabs.pointsE212<-xyFromCell(rastE212,pseudoabs.cellsE212)
+presence.cellsE212<-cellFromXY(rastE212, E212)
+presence.pointsE212<-xyFromCell(rastE212,presence.cellsE212)
+presence.cellsE212<-unique(presence.cellsE212)
+presence.pointsE212<-xyFromCell(rastE212,presence.cellsE212)
+PAPointsE212 <- as.data.frame(rbind(cbind(presence.pointsE212, rep(1,
+                                                                   nrow(presence.pointsE212))),cbind(pseudoabs.pointsE212, rep(0, nrow(pseudoabs.pointsE212)))))
+colnames(PAPointsE212) <- c("lon","lat","Y")
+PAPoints.spE212<- PAPointsE212
+coordinates(PAPoints.spE212) <- ~lon+lat
+
+worldclim.ukE212 <- crop(WorldClim, extent(rastE212))
+worldclim.ukE212 <- projectRaster(worldclim.ukE212, crs(rastE212))
+worldclim.ukE212 <- resample(worldclim.ukE212, rastE212)
+
+par(mfrow = c (1,1), mar=c(2,2,2,2))
+plot(worldclim.ukE212 [[1]])
+points(PAPointsE212$lon, PAPointsE212$lat, col= PAPointsE212$Y)
+plot(wrld_simpl, add=T) 
+
+bio1.ptsE212 <- extract(worldclim.ukE212 [[1]], PAPoints.spE212)
+worldclim.ptsE212 <- extract(worldclim.ukE212, PAPoints.spE212)
+SDM.dataE212<- data.frame(cbind(PAPointsE212, worldclim.ptsE212))
+SDM.dataE212 <- na.omit(SDM.dataE212)
+
+fit_glmE212<- glm(Y ~ bio1, family='binomial', data= SDM.dataE212)
+summary(fit_glmE212)
+
+predE212 <- c('bio1')
+xyzE212 <- data.frame(expand.grid(seq(min(SDM.dataE212 [,predE212[1]],
+                                          na.rm=T),max(SDM.dataE212 [,predE212[1]], na.rm=T),length=50)))
+
+names(xyzE212) <- predE212
+xyzE212$z <- predict(fit_glmE212, xyzE212, type='response')
+
+worldclim.uk_dfE212 <- data.frame(rasterToPoints(worldclim.ukE212))
+worldclim.uk_dfE212$pred_glmE212 <- predict(fit_glmE212, worldclim.uk_dfE212)
+Occpred_rastE212 <- rasterFromXYZ(worldclim.uk_dfE212[, c("x", "y", "pred_glmE212")])
+par(mfrow = c (1,1), mar=c(4.5,4.5,1,1))
+plot(mapdata, col = 'grey', border = 'darkgrey', ylab="Latitude (°N)", xlab="Longitude(°E)", main="2010-2018", xlim=extent.uk[c(1,3)], ylim=extent.uk[c(2,4)], axes=TRUE, cex.lab=1.5)
+points(E212$Longitude, E212$Latitude, col='red',
+       cex=0.75)
