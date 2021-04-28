@@ -1,0 +1,21 @@
+#data plotted for C. tullia
+plot(Id2~year, data=CTdata, ylim=c(0,900),ylab="Total number of observed individuals")
+shapiro.test(CTdata$Id2)
+shapiro.test(Temp$ann)
+
+#testing if there is a correlation between the abundance and the annual temperatures
+cor.test(CTdata$ann,CTdata$Id2, method="pearson")
+
+#data plotted for E.epiphron
+plot(Id1~year,data=EEdata, ylim=c(0,900),ylab="Totalnumber of observed individuals")
+shapiro.test(EEdata$Id1)
+shapiro.test(Temp$ann)
+#testing if there is a correlation between the abundance and the annual temperatures for this time  frame
+cor.test(EEdata$ann, EEdata$Id1,method="pearson")
+
+#data plotted for E. aethiops
+plot(Id3~year,data=EAdata, ylim=c(0,900),ylab="Totalnumber of observed individuals")
+shapiro.test(EAdata$Id2)
+shapiro.test(Temp$ann)
+#testing if there is a correlation between the abundance and the annual temperatures for this time  frame
+cor.test(EAdata$ann, EAdata$Id1,method="pearson")
