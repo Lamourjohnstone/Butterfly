@@ -18,6 +18,13 @@ E22<-E21[,c("Latitude","Longitude","year")]
 E211<-subset(E2010,!is.na(Latitude)&!is.na(Longitude))
 E212<-E211[,c("Latitude","Longitude","year")]
 
+E9<-E92
+coordinates(E9)<-~Longitude+Latitude
+crs(E9)<-crs(wrld_simpl)
+ovr<-over(E9, wrld_simpl)
+i.mismatchE9<-which(is.na(ovr$NAME))
+E92<-E9
+
 #raster for the first subset
 rastE92<-raster(E92)
 res(rasterE92)<-0.1
@@ -76,6 +83,13 @@ plot(mapdata, col = 'grey', border = 'darkgrey', ylab="Latitude (°N)", xlab="Lo
 points(E92$Longitude, E92$Latitude, col='red',cex=0.75)
 
 #subset 2 for E.epiphron
+E2<-E22
+coordinates(E2)<-~Longitude+Latitude
+crs(E2)<-crs(wrld_simpl)
+ovr<-over(E2, wrld_simpl)
+i.mismatchE2<-which(is.na(ovr$NAME))
+E22<-E2
+
 rastE22<-raster(E22)
 res(rastE22)<-0.1
 rastE22<-extend(rastE22,extent(rastE22)+1)
@@ -131,6 +145,13 @@ plot(mapdata, col = 'grey', border = 'darkgrey', ylab="Latitude (°N)", xlab="Lo
 points(E22$Longitude, E22$Latitude, col='red', cex=0.75)
 
 #subset 3 for E.epiphron
+E12<-E212
+coordinates(E12)<-~Longitude+Latitude
+crs(E12)<-crs(wrld_simpl)
+ovr<-over(E12, wrld_simpl)
+i.mismatchE12<-which(is.na(ovr$NAME))
+E212<-E12
+
 rastE212<-raster(E212)
 res(rastE212)<-0.1
 rastE212<-extend(rastE212,extent(rastE212)+1)
