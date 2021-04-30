@@ -6,6 +6,13 @@ A211<-subset(EA2010,!is.na(Latitude)&!is.na(Longitude))
 A212<-A211[,c("Latitude","Longitude","year")]
 
 # creating a new raster with the extent of the UK 1991-1999 Ea
+A9<-A92
+coordinates(A9)<-~Longitude+Latitude
+crs(A9)<-crs(wrld_simpl)
+ovr<-over(A9, wrld_simpl)
+i.mismatchA9<-which(is.na(ovr$NAME))
+A92<-A9
+
 rastA92<-raster(A92)
 res(rastA92)<-0.1
 rastA92<-extend(rastA92,extent(rastA92)+1)
