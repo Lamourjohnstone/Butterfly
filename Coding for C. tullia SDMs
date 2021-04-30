@@ -162,7 +162,7 @@ coordinates(PAPoints.sp11) <- ~lon+lat
 
 worldclim.uk11 <- crop(WorldClim, extent(rast1))
 worldclim.uk11 <- projectRaster(worldclim.uk11, crs(rast1))
-worldclim.uk11 <- resample(worldclim.uk, rast1)
+worldclim.uk11 <- resample(worldclim.uk11, rast1)
 # extracting the values of the predictors at the locations of the points  2010-2018 CT
 bio1.pts11 <- extract(worldclim.uk11[[1]], PAPoints.sp11)
 worldclim.pts11 <- extract(worldclim.uk11, PAPoints.sp11)
