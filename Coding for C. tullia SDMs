@@ -2,6 +2,13 @@
 C9<-subset(CT1991,!is.na(Latitude)&!is.na(Longitude))
 C91<-C9[,c("Latitude","Longitude","year")]
 
+C9<-C91
+coordinates(C9)<-~Longitude+Latitude
+crs(C9)<-crs(wrld_simpl)
+ovr<-over(C9, wrld_simpl)
+i.mismatch<-which(is.na(ovr$NAME))
+C91<-C9
+
 rast<-raster(C91)
 res(rast)<-0.1
 rast<-extend(rast,extent(rast)+1)
@@ -56,6 +63,13 @@ par(mfrow=c(1,2), mar=c(4.5,4.5,1,1))
     
 C20<-subset(CT2000,!is.na(Latitude)&!is.na(Longitude))
 C21<-C20[,c("Latitude","Longitude","year")]
+
+C2<-C21
+coordinates(C2)<-~Longitude+Latitude
+crs(C2)<-crs(wrld_simpl)
+ovr<-over(C2, wrld_simpl)
+i.mismatch<-which(is.na(ovr$NAME))
+C21<-C2
 
 rast2<-raster(C21)
 res(rast2)<-0.1
@@ -112,6 +126,13 @@ points(C21$Longitude, C21$Latitude, col='red',
 
 C10<-subset(CT2010,!is.na(Latitude)&!is.na(Longitude))
 C11<-C10[,c("Latitude","Longitude","year")]
+
+C1<-C11
+coordinates(C1)<-~Longitude+Latitude
+crs(C1)<-crs(wrld_simpl)
+ovr<-over(C1, wrld_simpl)
+i.mismatch1<-which(is.na(ovr$NAME))
+C11<-C1
 
 rast1<-raster(C11)
 res(rast1)<-0.1
